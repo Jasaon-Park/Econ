@@ -1,0 +1,43 @@
+import pandas as pd
+from pandas import DataFrame
+import numpy as np
+import numpy.linalg as nplin
+
+#0. Set up
+data = pd.read_csv("\mroz_data_workers.txt", sep='\s+')
+frame = pd.DataFrame(data)
+
+n= 428
+k= 13
+y = frame['WHRS']
+y = y.values.reshape(428, 1)
+xpart1 = np.ones((428, 1))
+xpart1 = pd.DataFrame(xpart1)
+xpart2 = frame[['KL6', 'K618', 'WA', 'WE', 'WW', 'WMED', 'WFED', 'AX', 'HHRS', 'HA', 'HE', 'HW']]
+x = pd.concat([xpart1, xpart2], axis=1)
+
+#1. Compute Least Square Estimator
+beta_hat = nplin.inv(np.dot(x.T, x)).dot(x.T).dot(y)
+beta_hat = beta_hat.reshape(13, 1)
+
+#2. Estimate Variance Covariance Matrix 
+u_hat = y - x.dot(beta_hat)
+sigma_hat = u_hat.T.dot(u_hat)/(n - k)
+inv_x_squared = nplin.inv(np.dot(x.T, x))
+var_beta_hat = sigma_hat.values * inv_x_squared
+
+#3. Compute Standard Error for beta_hat
+se_beta_hat = np.sqrt(np.diag(var_beta_hat))
+se_beta_hat = se_beta_hat.reshape(13, 1)
+
+#4. t-value for hyphotesis test  
+t_value = beta_hat / se_beta_hat
+
+
+"""Using Statsmodel"""
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+
+results = sm.OLS(y, x).fit()
+print(results.summary())
+
